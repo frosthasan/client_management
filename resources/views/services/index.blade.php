@@ -561,6 +561,7 @@
                 </div>
 
                 <div class="table-responsive">
+                    <!-- Update the table header (add API Link column) -->
                     <table class="services-table">
                         <thead>
                             <tr>
@@ -572,6 +573,7 @@
                                 <th>Paid Date</th>
                                 <th>Expire Date</th>
                                 <th>Status</th>
+                                <th style="width: 100px;">API Link</th> <!-- New column -->
                                 <th style="width: 180px;">Actions</th>
                             </tr>
                         </thead>
@@ -639,6 +641,24 @@
                                             <span class="status-badge status-cancelled">Cancelled</span>
                                             @endif
                                         </td>
+
+                                        <!-- API Link Column -->
+                                        <td class="api-link-cell">
+                                            @if(!$isTrashed)
+                                            <div class="api-link-container">
+                                                <button class="btn-icon btn-api copy-api-link" title="Copy API Link"
+                                                    data-api-url="{{ url('/api/service/' . $service->id) }}">
+                                                    <i class="fas fa-link"></i>
+                                                </button>
+                                                <div class="api-url-tooltip">
+                                                    {{ url('/api/service/' . $service->id) }}
+                                                </div>
+                                            </div>
+                                            @else
+                                            <span class="text-muted">N/A</span>
+                                            @endif
+                                        </td>
+
                                         <td>
                                             <div class="action-buttons">
                                                 @if($isTrashed)
@@ -687,29 +707,6 @@
                                         </td>
                                     </tr>
                                     @endforeach
-
-                                    @if($services->isEmpty())
-                                    <tr>
-                                        <td colspan="9" style="text-align: center; padding: 40px;">
-                                            <i class="fas fa-cogs"
-                                                style="font-size: 48px; color: #ddd; margin-bottom: 15px;"></i>
-                                            <h4 style="color: #999; margin-bottom: 10px;">
-                                                @if($trashedOnly)
-                                                Trash is Empty
-                                                @else
-                                                No Services found
-                                                @endif
-                                            </h4>
-                                            <p style="color: #aaa;">
-                                                @if($trashedOnly)
-                                                No deleted services found
-                                                @else
-                                                Click "Add Service" to create your first service.
-                                                @endif
-                                            </p>
-                                        </td>
-                                    </tr>
-                                    @endif
                         </tbody>
                     </table>
                 </div>
@@ -909,6 +906,145 @@
                     .btn-danger:hover {
                         background-color: #c0392b;
                     }
+
+                    /* API Link Styles */
+                    .api-link-cell {
+                        text-align: center;
+                    }
+
+                    .api-link-container {
+                        position: relative;
+                        display: inline-block;
+                    }
+
+                    .btn-api {
+                        background-color: rgba(155, 89, 182, 0.1);
+                        color: #9b59b6;
+                    }
+
+                    .btn-api:hover {
+                        background-color: #9b59b6;
+                        color: white;
+                    }
+
+                    .api-url-tooltip {
+                        visibility: hidden;
+                        position: absolute;
+                        z-index: 1000;
+                        background-color: #333;
+                        color: white;
+                        text-align: center;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        width: 250px;
+                        bottom: 125%;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        opacity: 0;
+                        transition: opacity 0.3s;
+                        word-break: break-all;
+                    }
+
+                    .api-url-tooltip::after {
+                        content: "";
+                        position: absolute;
+                        top: 100%;
+                        left: 50%;
+                        margin-left: -5px;
+                        border-width: 5px;
+                        border-style: solid;
+                        border-color: #333 transparent transparent transparent;
+                    }
+
+                    .api-link-container:hover .api-url-tooltip {
+                        visibility: visible;
+                        opacity: 1;
+                    }
+
+                    /* API Modal Styles */
+                    #apiModal .modal-content {
+                        max-width: 600px;
+                    }
+
+                    .api-url-display {
+                        background-color: #f8f9fa;
+                        border: 1px solid #ddd;
+                        border-radius: 6px;
+                        padding: 12px;
+                        margin: 15px 0;
+                        font-family: 'Courier New', monospace;
+                        font-size: 14px;
+                        word-break: break-all;
+                        position: relative;
+                    }
+
+                    .api-url-display .copy-btn {
+                        position: absolute;
+                        right: 10px;
+                        top: 10px;
+                        background: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 4px 10px;
+                        font-size: 12px;
+                        cursor: pointer;
+                    }
+
+                    .api-url-display .copy-btn:hover {
+                        background: #2980b9;
+                    }
+
+                    .api-response-preview {
+                        background-color: #2c3e50;
+                        color: #ecf0f1;
+                        border-radius: 6px;
+                        padding: 15px;
+                        margin: 15px 0;
+                        font-family: 'Courier New', monospace;
+                        font-size: 12px;
+                        max-height: 300px;
+                        overflow-y: auto;
+                        white-space: pre-wrap;
+                    }
+
+                    .api-test-btn {
+                        background-color: #27ae60;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+
+                    .api-test-btn:hover {
+                        background-color: #219653;
+                    }
+
+                    .api-test-btn i {
+                        font-size: 12px;
+                    }
+
+                    .api-usage-example {
+                        background-color: #f8f9fa;
+                        border-left: 4px solid #3498db;
+                        padding: 10px 15px;
+                        margin: 15px 0;
+                        border-radius: 4px;
+                        font-size: 13px;
+                    }
+
+                    .api-usage-example code {
+                        background-color: #e9ecef;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-family: 'Courier New', monospace;
+                    }
                 </style>
 
                 <!-- Pagination -->
@@ -953,6 +1089,245 @@
             </div>
         </div>
 
+        <!-- API Link Modal -->
+        <div id="apiModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-link me-2"></i>Service API Link</h3>
+                    <span class="close-modal" onclick="closeApiModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Use this API link to access service data from external applications:</p>
+
+                    <div class="api-url-display">
+                        <span id="apiUrlDisplay"></span>
+                        <button class="copy-btn" onclick="copyApiUrl()">
+                            <i class="fas fa-copy me-1"></i>Copy
+                        </button>
+                    </div>
+
+                    <div class="api-usage-example">
+                        <strong><i class="fas fa-lightbulb me-1"></i>Usage Examples:</strong>
+                        <div style="margin-top: 8px;">
+                            <strong>JavaScript Fetch:</strong>
+                            <pre
+                                style="margin: 5px 0; padding: 8px; background: #e9ecef; border-radius: 4px; font-size: 11px;">
+fetch('<span id="jsApiUrl"></span>')
+    .then(response => response.json())
+    .then(data => console.log(data));</pre>
+
+                            <strong>jQuery:</strong>
+                            <pre
+                                style="margin: 5px 0; padding: 8px; background: #e9ecef; border-radius: 4px; font-size: 11px;">
+$.getJSON('<span id="jqueryApiUrl"></span>', function(data) {
+    console.log(data);
+});</pre>
+                        </div>
+                    </div>
+
+                    <button class="api-test-btn" onclick="testApiEndpoint()">
+                        <i class="fas fa-bolt"></i> Test API Endpoint
+                    </button>
+
+                    <div id="apiResponse" class="api-response-preview" style="display: none;">
+                        <div id="apiResponseContent"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeApiModal()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // API Link functionality
+let currentApiUrl = '';
+
+// Show API modal
+$(document).on('click', '.copy-api-link', function() {
+    currentApiUrl = $(this).data('api-url');
+
+    // Update modal content
+    $('#apiUrlDisplay').text(currentApiUrl);
+    $('#jsApiUrl').text(currentApiUrl);
+    $('#jqueryApiUrl').text(currentApiUrl);
+
+    // Show modal
+    $('#apiModal').fadeIn();
+});
+
+// Copy API URL to clipboard
+function copyApiUrl() {
+    navigator.clipboard.writeText(currentApiUrl).then(function() {
+        // Show success message
+        const copyBtn = document.querySelector('.copy-btn');
+        const originalHtml = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+        copyBtn.style.background = '#27ae60';
+
+        setTimeout(function() {
+            copyBtn.innerHTML = originalHtml;
+            copyBtn.style.background = '#3498db';
+        }, 2000);
+
+        // Also show toast notification
+        showToast('API link copied to clipboard!', 'success');
+    }).catch(function(err) {
+        console.error('Failed to copy: ', err);
+        showToast('Failed to copy. Please try again.', 'error');
+    });
+}
+
+// Test API endpoint
+function testApiEndpoint() {
+    const testBtn = document.querySelector('.api-test-btn');
+    const originalHtml = testBtn.innerHTML;
+    const responseDiv = $('#apiResponse');
+    const responseContent = $('#apiResponseContent');
+
+    // Show loading
+    testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    testBtn.disabled = true;
+
+    // Clear previous response
+    responseContent.html('');
+    responseDiv.hide();
+
+    // Make API request
+    fetch(currentApiUrl)
+        .then(response => response.json())
+        .then(data => {
+            // Show response
+            responseContent.html(JSON.stringify(data, null, 2));
+            responseDiv.fadeIn();
+
+            // Reset button
+            testBtn.innerHTML = originalHtml;
+            testBtn.disabled = false;
+
+            // Scroll to response
+            responseDiv[0].scrollIntoView({ behavior: 'smooth' });
+        })
+        .catch(error => {
+            // Show error
+            responseContent.html('Error: ' + error.message);
+            responseDiv.fadeIn();
+
+            // Reset button
+            testBtn.innerHTML = originalHtml;
+            testBtn.disabled = false;
+        });
+}
+
+// Close API modal
+function closeApiModal() {
+    $('#apiModal').fadeOut();
+    $('#apiResponse').hide();
+    $('#apiResponseContent').html('');
+
+    // Reset test button
+    const testBtn = document.querySelector('.api-test-btn');
+    if (testBtn) {
+        testBtn.innerHTML = '<i class="fas fa-bolt"></i> Test API Endpoint';
+        testBtn.disabled = false;
+    }
+}
+
+// Simple copy on button click (without modal)
+$(document).on('click', '.btn-api', function(e) {
+    e.preventDefault();
+    const apiUrl = $(this).data('api-url');
+
+    navigator.clipboard.writeText(apiUrl).then(function() {
+        // Visual feedback
+        const btn = $(e.target).closest('.btn-api');
+        const originalHtml = btn.html();
+        const originalColor = btn.css('background-color');
+
+        btn.html('<i class="fas fa-check"></i>');
+        btn.css('background-color', '#27ae60');
+
+        setTimeout(function() {
+            btn.html(originalHtml);
+            btn.css('background-color', originalColor);
+        }, 1000);
+
+        // Show toast
+        showToast('API link copied!', 'success');
+    });
+});
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification ' + type;
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+        ${message}
+    `;
+
+    // Add to page
+    document.body.appendChild(toast);
+
+    // Show toast
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add toast styles
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #2c3e50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 300px;
+    }
+
+    .toast-notification.show {
+        transform: translateX(0);
+    }
+
+    .toast-notification.success {
+        background: #27ae60;
+        border-left: 4px solid #219653;
+    }
+
+    .toast-notification.error {
+        background: #e74c3c;
+        border-left: 4px solid #c0392b;
+    }
+
+    .toast-notification.info {
+        background: #3498db;
+        border-left: 4px solid #2980b9;
+    }
+`;
+document.head.appendChild(toastStyles);
+
+// Close modals on outside click
+$(window).on('click', function(event) {
+    if ($(event.target).is('#apiModal')) {
+        closeApiModal();
+    }
+});
+        </script>
         <!-- Footer -->
         @include('layouts.inc.footer')
     </div>
