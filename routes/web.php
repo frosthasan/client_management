@@ -45,11 +45,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('services')->group(function () {
         Route::get('/', [ProductsController::class, 'services'])->name('services');
         Route::get('/create', [ProductsController::class, 'add_services'])->name('add.services');
-        Route::post('/store', [ProductsController::class, 'product_group_store'])->name('services.store');
-        Route::get('/{id}/edit', [ProductsController::class, 'edit_product_group'])->name('product-group.edit');
-        Route::put('/{id}/update', [ProductsController::class, 'update_product_group'])->name('product-group.update');
-        Route::delete('/{id}/delete', [ProductsController::class, 'destroy_product_group'])->name('product-group.destroy');
+        Route::post('/store', [ProductsController::class, 'services_store'])->name('services.store');
+        Route::get('/edit/{id}', [ProductsController::class, 'edit_service'])->name('services.edit');
+        Route::post('/update/{id}', [ProductsController::class, 'services_update'])->name('services.update');
+        Route::delete('/delete/{id}', [ProductsController::class, 'service_destroy'])->name('services.destroy');
     });
+    Route::get('/api/service/{id}', [ProductsController::class, 'api_get_service']);
 });
 
 require __DIR__ . '/auth.php';

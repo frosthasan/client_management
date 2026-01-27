@@ -351,12 +351,41 @@ class ProductsController extends Controller
             ->with('error', 'Delete failed or group not found.');
     }
 
-    public function services()
+    public function services(Request $request)
     {
-        $products = Product::with('productGroup')->latest()->paginate(10);
-        $totalProducts = Product::count();
+        $trashedOnly = $request->get('trashed') === 'true';
 
-        return view('services.index', compact('products', 'totalProducts'));
+        if ($trashedOnly) {
+            // Show only trashed services
+            $services = Service::onlyTrashed()
+                ->with(['customer', 'product.productGroup'])
+                ->latest()
+                ->paginate(10);
+
+            $trashedServices = Service::onlyTrashed()->count();
+            $totalServices = Service::count();
+            $activeServices = Service::active()->count();
+            $expiredServices = Service::expired()->count();
+        } else {
+            // Show only non-trashed services (default)
+            $services = Service::with(['customer', 'product.productGroup'])
+                ->latest()
+                ->paginate(10);
+
+            $totalServices = Service::count();
+            $activeServices = Service::active()->count();
+            $expiredServices = Service::expired()->count();
+            $trashedServices = Service::onlyTrashed()->count();
+        }
+
+        return view('services.index', compact(
+            'services',
+            'totalServices',
+            'activeServices',
+            'expiredServices',
+            'trashedServices',
+            'trashedOnly'
+        ));
     }
 
     public function add_services()
@@ -399,7 +428,7 @@ class ProductsController extends Controller
                 'notes' => $validated['notes'],
             ]);
 
-            return redirect()->route('services.index')
+            return redirect()->route('services')
                 ->with('success', 'Service created successfully!');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -481,13 +510,13 @@ class ProductsController extends Controller
 
             $service->delete();
 
-            return redirect()->route('services.index')
+            return redirect()->route('services')
                 ->with('success', 'Service moved to trash successfully!');
 
         } catch (\Exception $e) {
             \Log::error('Service Deletion Error: ' . $e->getMessage());
 
-            return redirect()->route('services.index')
+            return redirect()->route('services')
                 ->with('error', 'Failed to delete service. Please try again.');
         }
     }
@@ -542,6 +571,114 @@ class ProductsController extends Controller
 
             return redirect()->route('services.index')
                 ->with('error', 'Failed to empty trash. Please try again.');
+        }
+    }
+
+    /**
+     * API: Get service details by ID
+     *
+     * URL: /api/service/{id}
+     * Example: /api/service/3
+     */
+    public function api_get_service($id)
+    {
+        try {
+            $service = Service::with([
+                'customer:id,first_name,last_name,email,phone,company_name',
+                'product:id,name,product_group_id,pricing_type,setup_fee,price_one_time,price_monthly,price_yearly,price_quarterly,status,description,version',
+                'product.productGroup:id,group_name,description'
+            ])->findOrFail($id);
+
+            // Check if service is soft deleted
+            if ($service->trashed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Service not found (moved to trash).',
+                    'data' => null
+                ], 404);
+            }
+
+            // Calculate additional metadata
+            $isExpired = $service->expire_date < now();
+            $daysUntilExpiration = $isExpired ? 0 : now()->diffInDays($service->expire_date);
+            $isExpiringSoon = !$isExpired && $daysUntilExpiration <= 30;
+
+            // Format the response data
+            $responseData = [
+                'id' => $service->id,
+                'customer' => [
+                    'id' => $service->customer->id,
+                    'first_name' => $service->customer->first_name,
+                    'last_name' => $service->customer->last_name,
+                    'full_name' => $service->customer->first_name . ' ' . $service->customer->last_name,
+                    'email' => $service->customer->email,
+                    'phone' => $service->customer->phone,
+                    'company_name' => $service->customer->company_name,
+                ],
+                'product' => [
+                    'id' => $service->product->id,
+                    'name' => $service->product->name,
+                    'product_group' => $service->product->productGroup ? [
+                        'id' => $service->product->productGroup->id,
+                        'group_name' => $service->product->productGroup->group_name,
+                        'description' => $service->product->productGroup->description,
+                    ] : null,
+                    'pricing_type' => $service->product->pricing_type,
+                    'setup_fee' => (float) $service->product->setup_fee,
+                    'prices' => [
+                        'one_time' => $service->product->price_one_time ? (float) $service->product->price_one_time : null,
+                        'monthly' => $service->product->price_monthly ? (float) $service->product->price_monthly : null,
+                        'yearly' => $service->product->price_yearly ? (float) $service->product->price_yearly : null,
+                        'quarterly' => $service->product->price_quarterly ? (float) $service->product->price_quarterly : null,
+                    ],
+                    'status' => $service->product->status,
+                    'description' => $service->product->description,
+                    'version' => $service->product->version,
+                ],
+                'package_name' => $service->package_name,
+                'price' => (float) $service->price,
+                'paid_date' => $service->paid_date->format('Y-m-d'),
+                'expire_date' => $service->expire_date->format('Y-m-d'),
+                'status' => $service->status,
+                'notes' => $service->notes,
+                'created_at' => $service->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $service->updated_at->format('Y-m-d H:i:s'),
+                'meta' => [
+                    'is_expired' => $isExpired,
+                    'is_expiring_soon' => $isExpiringSoon,
+                    'days_until_expiration' => $daysUntilExpiration,
+                    'formatted' => [
+                        'price' => '$' . number_format($service->price, 2),
+                        'paid_date' => $service->paid_date->format('F d, Y'),
+                        'expire_date' => $service->expire_date->format('F d, Y'),
+                        'created_at' => $service->created_at->format('F d, Y'),
+                        'updated_at' => $service->updated_at->format('F d, Y'),
+                    ]
+                ]
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service retrieved successfully.',
+                'data' => $responseData
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service not found.',
+                'data' => null
+            ], 404);
+
+        } catch (\Exception $e) {
+            \Log::error('API Service Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving service.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+                'data' => null
+            ], 500);
         }
     }
 }

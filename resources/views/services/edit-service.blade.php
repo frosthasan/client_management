@@ -4,10 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Service</title>
+    <title>Edit Service</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <style>
         .page-header {
@@ -212,6 +210,35 @@
             padding: 0 10px;
         }
 
+        .service-info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #3498db;
+        }
+
+        .service-info-box h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 120px;
+        }
+
+        .info-value {
+            color: #6c757d;
+        }
+
         @media (max-width: 768px) {
             .col-md-6 {
                 flex: 0 0 100%;
@@ -244,25 +271,42 @@
             <div class="breadcrumb">
                 <a href="{{ route('services') }}"><i class="fas fa-cogs"></i> Services</a>
                 <span class="separator"><i class="fas fa-chevron-right"></i></span>
-                <span><i class="fas fa-plus-circle"></i> Add Service</span>
+                <span><i class="fas fa-edit"></i> Edit Service</span>
             </div>
 
             <!-- Page Header -->
             <div class="page-header">
-                <h1><i class="fas fa-plus-circle me-2"></i>Add New Service</h1>
+                <h1><i class="fas fa-edit me-2"></i>Edit Service</h1>
                 <div class="page-actions">
                     <a href="{{ route('services') }}">
                         <button class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                            <i class="fas fa-arrow-left me-2"></i>Back to Services
                         </button>
                     </a>
+                </div>
+            </div>
+
+            <!-- Service Information Box -->
+            <div class="service-info-box">
+                <h4><i class="fas fa-info-circle me-2"></i>Service Information</h4>
+                <div class="info-row">
+                    <span class="info-label">Service ID:</span>
+                    <span class="info-value">SV{{ str_pad($service->id, 3, '0', STR_PAD_LEFT) }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Created:</span>
+                    <span class="info-value">{{ $service->created_at->format('M d, Y h:i A') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Last Updated:</span>
+                    <span class="info-value">{{ $service->updated_at->format('M d, Y h:i A') }}</span>
                 </div>
             </div>
 
             <!-- Form Container -->
             <div class="form-container">
                 <div class="form-header">
-                    <h3><i class="fas fa-cog"></i>Service Information</h3>
+                    <h3><i class="fas fa-edit"></i>Edit Service Details</h3>
                 </div>
 
                 <!-- Success/Error Messages -->
@@ -286,8 +330,9 @@
                 </div>
                 @endif
 
-                <form action="{{ route('services.store') }}" method="POST">
+                <form action="{{ route('services.update', $service->id) }}" method="POST">
                     @csrf
+                    @method('POST')
 
                     <div class="row">
                         <!-- Customer Selection -->
@@ -297,11 +342,10 @@
                                 <select id="customer_id" name="customer_id" class="form-control" required>
                                     <option value="">-- Select Customer --</option>
                                     @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}" {{ old('customer_id')==$customer->id ?
-                                        'selected' : '' }}>
+                                    <option value="{{ $customer->id }}" {{ old('customer_id', $service->customer_id) == $customer->id ? 'selected' : '' }}>
                                         {{ $customer->first_name }} {{ $customer->last_name }}
                                         @if($customer->company_name)
-                                        ({{ $customer->company_name }})
+                                            - {{ $customer->company_name }}
                                         @endif
                                     </option>
                                     @endforeach
@@ -319,11 +363,10 @@
                                 <select id="product_id" name="product_id" class="form-control" required>
                                     <option value="">-- Select Product --</option>
                                     @foreach($products as $product)
-                                    <option value="{{ $product->id }}" {{ old('product_id')==$product->id ? 'selected' :
-                                        '' }}>
+                                    <option value="{{ $product->id }}" {{ old('product_id', $service->product_id) == $product->id ? 'selected' : '' }}>
                                         {{ $product->name }}
                                         @if($product->productGroup)
-                                        ({{ $product->productGroup->group_name }})
+                                            ({{ $product->productGroup->group_name }})
                                         @endif
                                     </option>
                                     @endforeach
@@ -339,7 +382,7 @@
                             <div class="form-group">
                                 <label for="package_name">Package Name <span class="required">*</span></label>
                                 <input type="text" id="package_name" name="package_name" class="form-control"
-                                    placeholder="Enter package name" value="{{ old('package_name') }}" required>
+                                    placeholder="Enter package name" value="{{ old('package_name', $service->package_name) }}" required>
                                 @error('package_name')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -350,8 +393,8 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="price">Price ($) <span class="required">*</span></label>
-                                <input type="number" id="price" name="price" class="form-control" step="0.01"
-                                    placeholder="0.00" value="{{ old('price') }}" required>
+                                <input type="number" id="price" name="price" class="form-control"
+                                    step="0.01" placeholder="0.00" value="{{ old('price', $service->price) }}" required>
                                 @error('price')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -363,7 +406,7 @@
                             <div class="form-group">
                                 <label for="paid_date">Paid Date <span class="required">*</span></label>
                                 <input type="date" id="paid_date" name="paid_date" class="form-control"
-                                    value="{{ old('paid_date') }}" required>
+                                    value="{{ old('paid_date', $service->paid_date->format('Y-m-d')) }}" required>
                                 @error('paid_date')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -375,26 +418,22 @@
                             <div class="form-group">
                                 <label for="expire_date">Expire Date <span class="required">*</span></label>
                                 <input type="date" id="expire_date" name="expire_date" class="form-control"
-                                    value="{{ old('expire_date') }}" required>
+                                    value="{{ old('expire_date', $service->expire_date->format('Y-m-d')) }}" required>
                                 @error('expire_date')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- Status (Optional) -->
+                        <!-- Status -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="status">Status</label>
-                                <select id="status" name="status" class="form-control">
-                                    <option value="active" {{ old('status', 'active' )=='active' ? 'selected' : '' }}>
-                                        Active</option>
-                                    <option value="inactive" {{ old('status')=='inactive' ? 'selected' : '' }}>Inactive
-                                    </option>
-                                    <option value="pending" {{ old('status')=='pending' ? 'selected' : '' }}>Pending
-                                    </option>
-                                    <option value="cancelled" {{ old('status')=='cancelled' ? 'selected' : '' }}>
-                                        Cancelled</option>
+                                <label for="status">Status <span class="required">*</span></label>
+                                <select id="status" name="status" class="form-control" required>
+                                    <option value="active" {{ old('status', $service->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                    <option value="inactive" {{ old('status', $service->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                    <option value="pending" {{ old('status', $service->status) == 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="cancelled" {{ old('status', $service->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                 </select>
                                 @error('status')
                                 <div class="error-message">{{ $message }}</div>
@@ -402,12 +441,12 @@
                             </div>
                         </div>
 
-                        <!-- Notes (Optional) -->
+                        <!-- Notes -->
                         <div class="col-12">
                             <div class="form-group">
                                 <label for="notes">Notes</label>
                                 <textarea id="notes" name="notes" class="form-control"
-                                    placeholder="Enter any additional notes" rows="3">{{ old('notes') }}</textarea>
+                                    placeholder="Enter any additional notes" rows="3">{{ old('notes', $service->notes) }}</textarea>
                                 @error('notes')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -421,15 +460,39 @@
                             <i class="fas fa-times me-2"></i>Cancel
                         </a>
                         <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <i class="fas fa-save me-2"></i>Create Service
+                            <i class="fas fa-save me-2"></i>Update Service
                         </button>
                     </div>
                 </form>
             </div>
         </div>
+
         <!-- Footer -->
         @include('layouts.inc.footer')
     </div>
-</body>
 
+    <script>
+        // Set minimum expire date to paid date
+        document.getElementById('paid_date').addEventListener('change', function() {
+            const paidDate = this.value;
+            const expireDateField = document.getElementById('expire_date');
+
+            if (paidDate) {
+                expireDateField.min = paidDate;
+            }
+        });
+
+        // Validate expire date is after paid date
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const paidDate = new Date(document.getElementById('paid_date').value);
+            const expireDate = new Date(document.getElementById('expire_date').value);
+
+            if (expireDate < paidDate) {
+                e.preventDefault();
+                alert('Expire date must be after or equal to paid date.');
+                document.getElementById('expire_date').focus();
+            }
+        });
+    </script>
+</body>
 </html>
