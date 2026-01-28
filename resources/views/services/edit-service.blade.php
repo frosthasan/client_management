@@ -342,10 +342,11 @@
                                 <select id="customer_id" name="customer_id" class="form-control" required>
                                     <option value="">-- Select Customer --</option>
                                     @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}" {{ old('customer_id', $service->customer_id) == $customer->id ? 'selected' : '' }}>
+                                    <option value="{{ $customer->id }}" {{ old('customer_id', $service->customer_id) ==
+                                        $customer->id ? 'selected' : '' }}>
                                         {{ $customer->first_name }} {{ $customer->last_name }}
                                         @if($customer->company_name)
-                                            - {{ $customer->company_name }}
+                                        - {{ $customer->company_name }}
                                         @endif
                                     </option>
                                     @endforeach
@@ -360,13 +361,19 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="product_id">Product <span class="required">*</span></label>
-                                <select id="product_id" name="product_id" class="form-control" required>
+                                <select id="product_id" name="product_id" class="form-control" required
+                                    onchange="updateBillingOptions()">
                                     <option value="">-- Select Product --</option>
                                     @foreach($products as $product)
-                                    <option value="{{ $product->id }}" {{ old('product_id', $service->product_id) == $product->id ? 'selected' : '' }}>
+                                    <option value="{{ $product->id }}" data-pricing-type="{{ $product->pricing_type }}"
+                                        data-price-one-time="{{ $product->price_one_time }}"
+                                        data-price-monthly="{{ $product->price_monthly }}"
+                                        data-price-yearly="{{ $product->price_yearly }}"
+                                        data-price-quarterly="{{ $product->price_quarterly }}" {{ old('product_id',
+                                        $service->product_id) == $product->id ? 'selected' : '' }}>
                                         {{ $product->name }}
                                         @if($product->productGroup)
-                                            ({{ $product->productGroup->group_name }})
+                                        ({{ $product->productGroup->group_name }})
                                         @endif
                                     </option>
                                     @endforeach
@@ -377,13 +384,36 @@
                             </div>
                         </div>
 
-                        <!-- Package Name -->
+                        <!-- Domain Field -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="package_name">Package Name <span class="required">*</span></label>
-                                <input type="text" id="package_name" name="package_name" class="form-control"
-                                    placeholder="Enter package name" value="{{ old('package_name', $service->package_name) }}" required>
-                                @error('package_name')
+                                <label for="domain">Domain</label>
+                                <input type="text" id="domain" name="domain" class="form-control"
+                                    placeholder="Enter domain (e.g., example.com)"
+                                    value="{{ old('domain', $service->domain) }}">
+                                @error('domain')
+                                <div class="error-message">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Billing Cycle -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="billing_cycle">Billing Cycle <span class="required">*</span></label>
+                                <select id="billing_cycle" name="billing_cycle" class="form-control" required
+                                    onchange="updatePriceAndExpireDate()">
+                                    <option value="">-- Select Billing Cycle --</option>
+                                    <option value="one_time" {{ old('billing_cycle', $service->billing_cycle) ==
+                                        'one_time' ? 'selected' : '' }}>One-Time</option>
+                                    <option value="monthly" {{ old('billing_cycle', $service->billing_cycle) ==
+                                        'monthly' ? 'selected' : '' }}>Monthly</option>
+                                    <option value="quarterly" {{ old('billing_cycle', $service->billing_cycle) ==
+                                        'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                                    <option value="yearly" {{ old('billing_cycle', $service->billing_cycle) == 'yearly'
+                                        ? 'selected' : '' }}>Yearly</option>
+                                </select>
+                                @error('billing_cycle')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -393,11 +423,12 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="price">Price ($) <span class="required">*</span></label>
-                                <input type="number" id="price" name="price" class="form-control"
-                                    step="0.01" placeholder="0.00" value="{{ old('price', $service->price) }}" required>
+                                <input type="number" id="price" name="price" class="form-control" step="0.01"
+                                    placeholder="0.00" value="{{ old('price', $service->price) }}" required>
                                 @error('price')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
+                                <small class="form-help text-muted">Price can be manually edited</small>
                             </div>
                         </div>
 
@@ -406,7 +437,8 @@
                             <div class="form-group">
                                 <label for="paid_date">Paid Date <span class="required">*</span></label>
                                 <input type="date" id="paid_date" name="paid_date" class="form-control"
-                                    value="{{ old('paid_date', $service->paid_date->format('Y-m-d')) }}" required>
+                                    value="{{ old('paid_date', $service->paid_date->format('Y-m-d')) }}" required
+                                    onchange="updateExpireDate()">
                                 @error('paid_date')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -422,6 +454,8 @@
                                 @error('expire_date')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
+                                <small class="form-help text-muted">Expire date will be recalculated if billing cycle
+                                    changes</small>
                             </div>
                         </div>
 
@@ -430,10 +464,18 @@
                             <div class="form-group">
                                 <label for="status">Status <span class="required">*</span></label>
                                 <select id="status" name="status" class="form-control" required>
-                                    <option value="active" {{ old('status', $service->status) == 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="inactive" {{ old('status', $service->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                                    <option value="pending" {{ old('status', $service->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                                    <option value="cancelled" {{ old('status', $service->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    <option value="active" {{ old('status', $service->status) == 'active' ? 'selected' :
+                                        '' }}>Active</option>
+                                    <option value="inactive" {{ old('status', $service->status) == 'inactive' ?
+                                        'selected' : '' }}>Inactive</option>
+                                    <option value="pending" {{ old('status', $service->status) == 'pending' ? 'selected'
+                                        : '' }}>Pending</option>
+                                    <option value="cancelled" {{ old('status', $service->status) == 'cancelled' ?
+                                        'selected' : '' }}>Cancelled</option>
+                                    <option value="suspended" {{ old('status', $service->status) == 'suspended' ?
+                                        'selected' : '' }}>Suspended</option>
+                                    <option value="expired" {{ old('status', $service->status) == 'expired' ? 'selected'
+                                        : '' }}>Expired</option>
                                 </select>
                                 @error('status')
                                 <div class="error-message">{{ $message }}</div>
@@ -446,7 +488,8 @@
                             <div class="form-group">
                                 <label for="notes">Notes</label>
                                 <textarea id="notes" name="notes" class="form-control"
-                                    placeholder="Enter any additional notes" rows="3">{{ old('notes', $service->notes) }}</textarea>
+                                    placeholder="Enter any additional notes"
+                                    rows="3">{{ old('notes', $service->notes) }}</textarea>
                                 @error('notes')
                                 <div class="error-message">{{ $message }}</div>
                                 @enderror
@@ -464,6 +507,139 @@
                         </button>
                     </div>
                 </form>
+
+                <!-- JavaScript for dynamic calculations -->
+                <script>
+                    function updateBillingOptions() {
+    const productSelect = document.getElementById('product_id');
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const billingCycleSelect = document.getElementById('billing_cycle');
+    const currentBillingCycle = '{{ $service->billing_cycle }}';
+
+    // Get product pricing type and available options
+    const pricingType = selectedOption.getAttribute('data-pricing-type');
+
+    // Reset and enable all options first
+    for (let option of billingCycleSelect.options) {
+        option.disabled = false;
+        option.style.display = '';
+    }
+
+    // Disable options based on product pricing type
+    if (pricingType === 'one_time') {
+        disableBillingOptions(['monthly', 'quarterly', 'yearly']);
+    } else if (pricingType === 'recurring') {
+        disableBillingOptions(['one_time']);
+    }
+    // For 'both' type, all options remain enabled
+
+    // If current billing cycle is disabled, clear selection
+    const selectedOptionValue = billingCycleSelect.value;
+    const selectedOptionElement = billingCycleSelect.options[billingCycleSelect.selectedIndex];
+    if (selectedOptionElement.disabled && selectedOptionValue !== '') {
+        billingCycleSelect.value = '';
+    }
+
+    // Update price if billing cycle is already selected
+    if (billingCycleSelect.value && productSelect.value) {
+        updatePriceAndExpireDate();
+    }
+}
+
+function disableBillingOptions(optionsToDisable) {
+    const billingCycleSelect = document.getElementById('billing_cycle');
+
+    for (let option of billingCycleSelect.options) {
+        if (optionsToDisable.includes(option.value)) {
+            option.disabled = true;
+            if (option.selected) {
+                option.selected = false;
+            }
+        }
+    }
+}
+
+function updatePriceAndExpireDate() {
+    const productSelect = document.getElementById('product_id');
+    const selectedProductOption = productSelect.options[productSelect.selectedIndex];
+    const billingCycle = document.getElementById('billing_cycle').value;
+    const paidDate = document.getElementById('paid_date').value;
+
+    if (!selectedProductOption.value || !billingCycle) return;
+
+    // Update price based on billing cycle if no manual price entered
+    const currentPrice = document.getElementById('price').value;
+    if (!currentPrice || confirm('Update price based on selected product and billing cycle?')) {
+        let price = '';
+        switch(billingCycle) {
+            case 'one_time':
+                price = selectedProductOption.getAttribute('data-price-one-time');
+                break;
+            case 'monthly':
+                price = selectedProductOption.getAttribute('data-price-monthly');
+                break;
+            case 'quarterly':
+                price = selectedProductOption.getAttribute('data-price-quarterly');
+                break;
+            case 'yearly':
+                price = selectedProductOption.getAttribute('data-price-yearly');
+                break;
+        }
+
+        document.getElementById('price').value = price || currentPrice;
+    }
+
+    // Update expire date if paid date is set
+    if (paidDate) {
+        updateExpireDate();
+    }
+}
+
+function updateExpireDate() {
+    const paidDate = document.getElementById('paid_date').value;
+    const billingCycle = document.getElementById('billing_cycle').value;
+
+    if (!paidDate || !billingCycle) return;
+
+    const paidDateObj = new Date(paidDate);
+    let expireDate = new Date(paidDateObj);
+
+    switch(billingCycle) {
+        case 'one_time':
+            // For one-time, set expire date far in the future (e.g., 100 years)
+            expireDate.setFullYear(expireDate.getFullYear() + 100);
+            break;
+        case 'monthly':
+            expireDate.setMonth(expireDate.getMonth() + 1);
+            break;
+        case 'quarterly':
+            expireDate.setMonth(expireDate.getMonth() + 3);
+            break;
+        case 'yearly':
+            expireDate.setFullYear(expireDate.getFullYear() + 1);
+            break;
+    }
+
+    // Format date as YYYY-MM-DD
+    const formattedDate = expireDate.toISOString().split('T')[0];
+
+    // Only update if changed
+    if (formattedDate !== document.getElementById('expire_date').value) {
+        if (confirm('Update expire date based on paid date and billing cycle?')) {
+            document.getElementById('expire_date').value = formattedDate;
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize billing options if product is selected
+    const productSelect = document.getElementById('product_id');
+    if (productSelect.value) {
+        updateBillingOptions();
+    }
+});
+                </script>
             </div>
         </div>
 
@@ -495,4 +671,5 @@
         });
     </script>
 </body>
+
 </html>

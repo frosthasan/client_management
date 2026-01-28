@@ -568,7 +568,7 @@
                                 <th style="width: 60px;">ID</th>
                                 <th>Customer</th>
                                 <th>Product</th>
-                                <th>Package</th>
+                                <th>Domain</th>
                                 <th>Price</th>
                                 <th>Paid Date</th>
                                 <th>Expire Date</th>
@@ -609,7 +609,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <strong>{{ $service->package_name }}</strong>
+                                            <strong>{{ $service->domain }}</strong>
                                             @if($service->notes)
                                             <br><small class="text-muted">{{ Str::limit($service->notes, 50) }}</small>
                                             @endif

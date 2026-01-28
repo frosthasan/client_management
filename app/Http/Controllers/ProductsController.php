@@ -408,11 +408,11 @@ class ProductsController extends Controller
             $validated = $request->validate([
                 'customer_id' => 'required|exists:users,id',
                 'product_id' => 'required|exists:products,id',
-                'package_name' => 'required|string|max:255',
+                'domain' => 'nullable|string|max:255',
+                'billing_cycle' => 'required|in:one_time,monthly,quarterly,yearly',
                 'price' => 'required|numeric|min:0',
                 'paid_date' => 'required|date',
                 'expire_date' => 'required|date|after_or_equal:paid_date',
-                'status' => 'nullable|in:active,inactive,pending,cancelled',
                 'notes' => 'nullable|string',
             ]);
 
@@ -420,12 +420,13 @@ class ProductsController extends Controller
             $service = Service::create([
                 'customer_id' => $validated['customer_id'],
                 'product_id' => $validated['product_id'],
-                'package_name' => $validated['package_name'],
+                'domain' => $validated['domain'],
+                'billing_cycle' => $validated['billing_cycle'],
                 'price' => $validated['price'],
                 'paid_date' => $validated['paid_date'],
                 'expire_date' => $validated['expire_date'],
-                'status' => $validated['status'] ?? 'active',
                 'notes' => $validated['notes'],
+                'status' => 'active', // Default status
             ]);
 
             return redirect()->route('services')
@@ -454,16 +455,17 @@ class ProductsController extends Controller
                 ->orderBy('first_name')
                 ->get(['id', 'first_name', 'last_name', 'company_name']);
 
+            // Updated to include pricing fields for dynamic calculations
             $products = Product::where('status', '1')
                 ->with('productGroup')
                 ->orderBy('name')
-                ->get(['id', 'name', 'product_group_id']);
+                ->get(['id', 'name', 'product_group_id', 'pricing_type', 'price_one_time', 'price_monthly', 'price_yearly', 'price_quarterly']);
 
             return view('services.edit-service', compact('service', 'customers', 'products'));
 
         } catch (\Exception $e) {
             \Log::error('Edit Service Error: ' . $e->getMessage());
-            return redirect()->route('services.index')
+            return redirect()->route('services')
                 ->with('error', 'Service not found.');
         }
     }
@@ -476,17 +478,25 @@ class ProductsController extends Controller
             $validated = $request->validate([
                 'customer_id' => 'required|exists:users,id',
                 'product_id' => 'required|exists:products,id',
-                'package_name' => 'required|string|max:255',
+                'domain' => 'nullable|string|max:255',
+                'billing_cycle' => 'required|in:one_time,monthly,quarterly,yearly',
                 'price' => 'required|numeric|min:0',
                 'paid_date' => 'required|date',
                 'expire_date' => 'required|date|after_or_equal:paid_date',
-                'status' => 'required|in:active,inactive,pending,cancelled',
+                'status' => 'required|in:active,inactive,pending,cancelled,suspended,expired',
                 'notes' => 'nullable|string',
             ]);
 
+            // If billing cycle changed, you might want to recalculate expire date
+            // This is optional - you can remove if you want manual control
+            if ($service->billing_cycle !== $validated['billing_cycle'] && $service->paid_date->format('Y-m-d') === $validated['paid_date']) {
+                // Recalculate expire date based on new billing cycle
+                $validated['expire_date'] = $this->calculateExpireDate($validated['paid_date'], $validated['billing_cycle']);
+            }
+
             $service->update($validated);
 
-            return redirect()->route('services.index')
+            return redirect()->route('services')
                 ->with('success', 'Service updated successfully!');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -501,6 +511,31 @@ class ProductsController extends Controller
                 ->withInput()
                 ->with('error', 'Failed to update service. Please try again.');
         }
+    }
+
+    /**
+     * Helper method to calculate expire date based on billing cycle
+     */
+    private function calculateExpireDate($paidDate, $billingCycle)
+    {
+        $expireDate = \Carbon\Carbon::parse($paidDate);
+
+        switch ($billingCycle) {
+            case 'one_time':
+                $expireDate->addYears(100); // Far future for one-time purchases
+                break;
+            case 'monthly':
+                $expireDate->addMonth();
+                break;
+            case 'quarterly':
+                $expireDate->addMonths(3);
+                break;
+            case 'yearly':
+                $expireDate->addYear();
+                break;
+        }
+
+        return $expireDate->format('Y-m-d');
     }
 
     public function service_destroy($id)

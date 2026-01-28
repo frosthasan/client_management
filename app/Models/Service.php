@@ -25,6 +25,8 @@ class Service extends Model
         'customer_id',
         'product_id',
         'package_name',
+        'domain',
+        'billing_cycle',
         'price',
         'paid_date',
         'expire_date',
@@ -43,7 +45,7 @@ class Service extends Model
         'expire_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', 
+        'deleted_at' => 'datetime',
     ];
 
     /**
